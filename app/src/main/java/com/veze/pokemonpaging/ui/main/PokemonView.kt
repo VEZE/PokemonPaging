@@ -10,5 +10,6 @@ interface PokemonView {
 
     sealed class PokemonAction {
         object Refresh : PokemonAction()
+        object Initial : PokemonAction()
     }
 }

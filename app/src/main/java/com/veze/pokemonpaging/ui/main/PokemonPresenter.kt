@@ -10,20 +10,28 @@ class PokemonPresenter(val interactor: PokemonInteractor) {
     private val stateSubject = BehaviorSubject.create<PokemonViewState>()
 
     fun bind(mainView: PokemonView) {
-        val updateListObservable = mainView.getActionStream().flatMap {
-            interactor.updateList().map {
-                return@map if (it.isEmpty()) {
-                    PokemonViewState.Error(Throwable("is empty"))
-                } else {
-                    PokemonViewState.PokemonData(it)
+
+
+        val actionStreamObservable =
+            mainView.getActionStream()
+                .flatMap { pokemonAction ->
+                    when (pokemonAction) {
+                        PokemonView.PokemonAction.Initial -> {
+                            interactor.updateList()
+                        }
+                        PokemonView.PokemonAction.Refresh -> {
+                            interactor.updateList()
+                        }
+                    }
+                }.map {
+                    PokemonViewState.PokemonData(it) as PokemonViewState
                 }
-            }
-                .doOnSubscribe { PokemonViewState.Loading }
+                .startWithArray(PokemonViewState.Loading)
                 .onErrorReturn { error -> PokemonViewState.Error(error = error) }
-        }
+
 
         val mergedIntentsObservable =
-            Observable.merge(listOf(updateListObservable)).subscribeWith(stateSubject)
+            Observable.merge(listOf(actionStreamObservable)).subscribeWith(stateSubject)
 
         compositeDisposable.add(
             mergedIntentsObservable

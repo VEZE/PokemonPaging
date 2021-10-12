@@ -90,8 +90,12 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
         return refreshActionPublisher
     }
 
+    private fun initAction(): Observable<PokemonView.PokemonAction.Initial> {
+        return Observable.just(PokemonView.PokemonAction.Initial)
+    }
+
     override fun getActionStream(): Observable<PokemonView.PokemonAction> {
-        return Observable.merge(listOf(refreshAction()))
+        return Observable.merge(refreshAction(), initAction())
     }
 
 }
