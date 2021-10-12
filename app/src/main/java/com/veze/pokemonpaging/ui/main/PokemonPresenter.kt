@@ -3,6 +3,7 @@ package com.veze.pokemonpaging.ui.main
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.subjects.BehaviorSubject
+import java.util.concurrent.TimeUnit
 
 class PokemonPresenter(val interactor: PokemonInteractor) {
 
@@ -11,20 +12,20 @@ class PokemonPresenter(val interactor: PokemonInteractor) {
 
     fun bind(mainView: PokemonView) {
 
-
         val actionStreamObservable =
             mainView.getActionStream()
-                .flatMap { pokemonAction ->
+                .flatMap<PokemonViewState> { pokemonAction ->
                     when (pokemonAction) {
                         PokemonView.PokemonAction.Initial -> {
-                            interactor.updateList()
+                            Observable.just(PokemonViewState.PokemonData(emptyList()))
+                                .delay(1000, TimeUnit.MILLISECONDS)
                         }
                         PokemonView.PokemonAction.Refresh -> {
-                            interactor.updateList()
+                            interactor.updateList().map {
+                                return@map PokemonViewState.PokemonData(it)
+                            }
                         }
                     }
-                }.map {
-                    PokemonViewState.PokemonData(it) as PokemonViewState
                 }
                 .startWithArray(PokemonViewState.Loading)
                 .onErrorReturn { error -> PokemonViewState.Error(error = error) }
