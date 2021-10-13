@@ -13,7 +13,6 @@ import com.veze.pokemonpaging.databinding.ActivityPokemonsBinding
 import com.veze.pokemonpaging.util.PagingListener
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.subjects.PublishSubject
-import kotlin.math.roundToInt
 
 
 class PokemonActivity : AppCompatActivity(), PokemonView {
@@ -80,7 +79,7 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
             showError(error)
             showPokemonList(pokemonList)
             if (pagingPokemonList.isNotEmpty())
-                loadPagingList(pokemonList, pagingPokemonList)
+                loadPagingList(pagingPokemonList)
             showPagingProgress()
         }
     }
@@ -89,7 +88,7 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
 
     }
 
-    private fun loadPagingList(pokemonList: List<Pokemon>, pagingPokemonList: List<Pokemon>) {
+    private fun loadPagingList(pagingPokemonList: List<Pokemon>) {
         runOnUiThread {
             Toast.makeText(
                 this,
@@ -137,21 +136,15 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
 
     }
 
-    class ScrollListener(val listener: PagingListener) :
+    class ScrollListener(private val pagingListener: PagingListener) :
         RecyclerView.OnScrollListener() {
-        override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-            super.onScrolled(recyclerView, dx, dy)
-            val layoutManager: LinearLayoutManager =
-                recyclerView.layoutManager as LinearLayoutManager
-            val position = layoutManager.findLastVisibleItemPosition()
-            val updatePosition = (recyclerView.adapter!!.itemCount - 1 * 0.75).roundToInt()
 
-            if (position >= updatePosition) {
-                listener.onNextPage(recyclerView.adapter!!.itemCount)
+        override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+            super.onScrollStateChanged(recyclerView, newState)
+            if (!recyclerView.canScrollVertically(1) && newState == RecyclerView.SCROLL_STATE_IDLE) {
+                pagingListener.onNextPage(recyclerView.adapter!!.itemCount)
             }
-
         }
     }
-
 
 }
