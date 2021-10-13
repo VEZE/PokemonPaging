@@ -5,12 +5,15 @@ import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.snackbar.Snackbar
 import com.veze.pokemonpaging.R
 import com.veze.pokemonpaging.data.model.Pokemon
 import com.veze.pokemonpaging.databinding.ActivityPokemonsBinding
+import com.veze.pokemonpaging.util.PagingListener
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.subjects.PublishSubject
+import kotlin.math.roundToInt
 
 
 class PokemonActivity : AppCompatActivity(), PokemonView {
@@ -21,6 +24,9 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
 
     private val mainPresenter: PokemonPresenter by lazy { PokemonPresenter(PokemonInteractor()) }
     private val refreshActionPublisher = PublishSubject.create<PokemonView.PokemonAction.Refresh>()
+    private val loadPagingActionPublisher =
+        PublishSubject.create<PokemonView.PokemonAction.LoadPagination>()
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -50,6 +56,10 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
         pokemonAdapter = PokemonAdapter { _ -> Log.d("TAG", "onCreate: ") }
         binding.contentScrolling.pokemonRecycler.adapter = pokemonAdapter
         binding.contentScrolling.pokemonRecycler.layoutManager = LinearLayoutManager(this)
+        with(binding.contentScrolling.pokemonRecycler) {
+            addOnScrollListener(ScrollListener(PokemonPagingListener()))
+        }
+
     }
 
 
@@ -69,7 +79,25 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
             showLoading(progress)
             showError(error)
             showPokemonList(pokemonList)
+            if (pagingPokemonList.isNotEmpty())
+                loadPagingList(pokemonList, pagingPokemonList)
+            showPagingProgress()
         }
+    }
+
+    private fun showPagingProgress() {
+
+    }
+
+    private fun loadPagingList(pokemonList: List<Pokemon>, pagingPokemonList: List<Pokemon>) {
+        runOnUiThread {
+            Toast.makeText(
+                this,
+                "Loaded more items count= ${pagingPokemonList.size}",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+        pokemonAdapter.submitList(pokemonAdapter.currentList + pagingPokemonList)
     }
 
     private fun showLoading(progress: Boolean) {
@@ -94,8 +122,36 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
         return Observable.just(PokemonView.PokemonAction.Initial)
     }
 
-    override fun getActionStream(): Observable<PokemonView.PokemonAction> {
-        return Observable.merge(refreshAction(), initAction())
+    private fun loadPaginationAction(): Observable<PokemonView.PokemonAction.LoadPagination> {
+        return loadPagingActionPublisher
     }
+
+    override fun getActionStream(): Observable<PokemonView.PokemonAction> {
+        return Observable.merge(refreshAction(), initAction(), loadPaginationAction())
+    }
+
+    inner class PokemonPagingListener() : PagingListener {
+        override fun onNextPage(offset: Int) {
+            loadPagingActionPublisher.onNext(PokemonView.PokemonAction.LoadPagination(offset))
+        }
+
+    }
+
+    class ScrollListener(val listener: PagingListener) :
+        RecyclerView.OnScrollListener() {
+        override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+            super.onScrolled(recyclerView, dx, dy)
+            val layoutManager: LinearLayoutManager =
+                recyclerView.layoutManager as LinearLayoutManager
+            val position = layoutManager.findLastVisibleItemPosition()
+            val updatePosition = (recyclerView.adapter!!.itemCount - 1 * 0.75).roundToInt()
+
+            if (position >= updatePosition) {
+                listener.onNextPage(recyclerView.adapter!!.itemCount)
+            }
+
+        }
+    }
+
 
 }

@@ -21,9 +21,14 @@ class PokemonPresenter(val interactor: PokemonInteractor) {
                                 .delay(1000, TimeUnit.MILLISECONDS)
                         }
                         PokemonView.PokemonAction.Refresh -> {
-                            interactor.updateList().map {
+                            interactor.updateListWithOffset().map {
                                 return@map PokemonViewState.PokemonData(it)
                             }
+                        }
+                        is PokemonView.PokemonAction.LoadPagination -> {
+                            interactor.updateListWithOffset(pokemonAction.offset).map {
+                                return@map PokemonViewState.PagingPokemonData(it)
+                            }.doOnSubscribe { PokemonViewState.PagingLoading }
                         }
                     }
                 }
@@ -46,8 +51,15 @@ class PokemonPresenter(val interactor: PokemonInteractor) {
             is PokemonViewState.Error -> PokemonState(progress = false, error = partialState.error)
             is PokemonViewState.PokemonData -> PokemonState(
                 progress = false,
-                pokemonList = partialState.pokemonList
+                pokemonList = partialState.pokemonList,
+                pagingProgress = false
             )
+            is PokemonViewState.PagingPokemonData -> PokemonState(
+                progress = false,
+                pagingPokemonList = partialState.pagingPokemonList,
+                pagingProgress = false
+            )
+            PokemonViewState.PagingLoading -> PokemonState(progress = false, pagingProgress = true)
         }
     }
 

@@ -58,11 +58,11 @@ class PokemonAdapter(private val onClick: (Pokemon) -> Unit) :
 
 object PokemonDiffCallback : DiffUtil.ItemCallback<Pokemon>() {
     override fun areItemsTheSame(oldItem: Pokemon, newItem: Pokemon): Boolean {
-        return oldItem == newItem
+        return oldItem.id == newItem.id
     }
 
     override fun areContentsTheSame(oldItem: Pokemon, newItem: Pokemon): Boolean {
-        return oldItem.id == newItem.id
+        return oldItem == newItem
     }
 }
 

@@ -23,4 +23,17 @@ class PokemonInteractor(private val pokeApi: PokeApi = PokeClient()) {
 
 
     }
+
+    fun updateListWithOffset(
+        offset: Int = 0,
+        limit: Int = 10
+    ): Observable<MutableList<Pokemon>> {
+        return pokeApi.getPokemonList(offset, limit).flatMap { namedApiResource ->
+            return@flatMap Observable.fromIterable(namedApiResource.results).flatMap {
+                pokeApi.getPokemon(urlToId(it.url))
+            }.toList().toObservable()
+        }
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+    }
 }

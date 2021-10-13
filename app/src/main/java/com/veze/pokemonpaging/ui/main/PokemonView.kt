@@ -9,6 +9,7 @@ interface PokemonView {
     fun getActionStream(): Observable<PokemonAction>
 
     sealed class PokemonAction {
+        data class LoadPagination(val offset: Int) : PokemonAction()
         object Refresh : PokemonAction()
         object Initial : PokemonAction()
     }
