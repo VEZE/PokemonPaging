@@ -3,10 +3,12 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="../../../../layout/custom_preview.xml" value="0.3148148148148148" />
         <entry key="app/src/main/res/layout-w1240dp/content_scrolling.xml" value="0.12717536813922356" />
         <entry key="app/src/main/res/layout/activity_pokemons.xml" value="0.17028985507246377" />
         <entry key="app/src/main/res/layout/activity_scrolling.xml" value="0.20643363728470113" />
         <entry key="app/src/main/res/layout/content_scrolling.xml" value="0.20643363728470113" />
+        <entry key="app/src/main/res/layout/loading_item.xml" value="0.3138586956521739" />
         <entry key="app/src/main/res/layout/pokemon_item.xml" value="0.20606884057971014" />
       </map>
     </option>

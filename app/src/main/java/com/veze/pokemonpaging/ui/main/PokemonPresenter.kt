@@ -2,64 +2,79 @@ package com.veze.pokemonpaging.ui.main
 
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.disposables.CompositeDisposable
+import io.reactivex.rxjava3.functions.BiFunction
 import io.reactivex.rxjava3.subjects.BehaviorSubject
 import java.util.concurrent.TimeUnit
 
+/**
+ *  Presents  data in reactive way to view.
+ *
+ *  bind -> should be called when view is attached (Example: onStart())
+ *  unbind -> should be called when view is detached (Example: onStop())
+ *
+ * @param interactor  used for interaction with data layer
+ */
 class PokemonPresenter(val interactor: PokemonInteractor) {
 
     private val compositeDisposable = CompositeDisposable()
     private val stateSubject = BehaviorSubject.create<PokemonViewState>()
 
-    fun bind(mainView: PokemonView) {
+    fun getStateStream(): Observable<PokemonViewState> = stateSubject
 
+    fun bind(mainView: PokemonView) {
         val actionStreamObservable =
-            mainView.getActionStream()
-                .flatMap<PokemonViewState> { pokemonAction ->
+            mainView.getIntentsStream()
+                .flatMap { pokemonAction ->
                     when (pokemonAction) {
-                        PokemonView.PokemonAction.Initial -> {
-                            Observable.just(PokemonViewState.PokemonData(emptyList()))
+                        PokemonView.PokemonIntent.Initial -> {
+                            Observable.just(PokemonAction.SubmitList(emptyList()))
                                 .delay(1000, TimeUnit.MILLISECONDS)
                         }
-                        PokemonView.PokemonAction.Refresh -> {
-                            interactor.updateListWithOffset().map {
-                                return@map PokemonViewState.PokemonData(it)
+                        PokemonView.PokemonIntent.Refresh -> {
+                            interactor.getPokemons().map {
+                                return@map PokemonAction.SubmitList(it)
                             }
                         }
-                        is PokemonView.PokemonAction.LoadPagination -> {
-                            interactor.updateListWithOffset(pokemonAction.offset).map {
-                                return@map PokemonViewState.PagingPokemonData(it)
-                            }.doOnSubscribe { PokemonViewState.PagingLoading }
+                        is PokemonView.PokemonIntent.LoadPagination -> {
+                            interactor.getPokemons(pokemonAction.offset).map {
+                                return@map PokemonAction.SubmitPagingList(it)
+                            }.doOnSubscribe { PokemonAction.PagingLoading }
                         }
                     }
                 }
-                .startWithArray(PokemonViewState.Loading)
-                .onErrorReturn { error -> PokemonViewState.Error(error = error) }
+                .startWithArray(PokemonAction.Loading)
+                .onErrorReturn { error -> PokemonAction.Error(error = error) }
 
 
-        val mergedIntentsObservable =
-            Observable.merge(listOf(actionStreamObservable)).subscribeWith(stateSubject)
+        val resultStateObservable = actionStreamObservable.scan(PokemonViewState(), reducer)
+            //Prevent from multiple call render when emited state is not changing
+            .distinctUntilChanged()
+            .replay(1)
+            .autoConnect(0)
+            .subscribeWith(stateSubject)
 
-        compositeDisposable.add(
-            mergedIntentsObservable
-                .subscribe { mainView.render(reduce(it)) }
-        )
+        compositeDisposable.add(resultStateObservable.subscribe())
     }
 
-    private fun reduce(partialState: PokemonViewState): PokemonState {
-        return when (partialState) {
-            is PokemonViewState.Loading -> PokemonState(progress = true)
-            is PokemonViewState.Error -> PokemonState(progress = false, error = partialState.error)
-            is PokemonViewState.PokemonData -> PokemonState(
+    private val reducer = BiFunction { previousViewState: PokemonViewState, result: PokemonAction ->
+
+        return@BiFunction when (result) {
+            is PokemonAction.Loading -> previousViewState.copy(progress = true)
+            is PokemonAction.Error -> previousViewState.copy(progress = false, error = result.error)
+            is PokemonAction.SubmitList -> previousViewState.copy(
                 progress = false,
-                pokemonList = partialState.pokemonList,
+                pokemonList = result.pokemonList,
                 pagingProgress = false
             )
-            is PokemonViewState.PagingPokemonData -> PokemonState(
+            is PokemonAction.SubmitPagingList -> previousViewState.copy(
                 progress = false,
-                pagingPokemonList = partialState.pagingPokemonList,
+                pagingPokemonList = result.pagingPokemonList,
                 pagingProgress = false
             )
-            PokemonViewState.PagingLoading -> PokemonState(progress = false, pagingProgress = true)
+            PokemonAction.PagingLoading -> previousViewState.copy(
+                progress = false,
+                pagingProgress = true
+            )
         }
     }
 

@@ -1,16 +1,13 @@
 package com.veze.pokemonpaging.ui.main
 
-import io.reactivex.rxjava3.core.Observable
+import com.veze.pokemonpaging.mvi.MviIntent
+import com.veze.pokemonpaging.mvi.MviView
 
-interface PokemonView {
+interface PokemonView : MviView<PokemonView.PokemonIntent, PokemonViewState> {
 
-    fun render(state: PokemonState)
-
-    fun getActionStream(): Observable<PokemonAction>
-
-    sealed class PokemonAction {
-        data class LoadPagination(val offset: Int) : PokemonAction()
-        object Refresh : PokemonAction()
-        object Initial : PokemonAction()
+    sealed class PokemonIntent : MviIntent {
+        data class LoadPagination(val offset: Int) : PokemonIntent()
+        object Refresh : PokemonIntent()
+        object Initial : PokemonIntent()
     }
 }
