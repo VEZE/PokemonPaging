@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit
  *
  * @param interactor  used for interaction with data layer
  */
-class PokemonPresenter(val interactor: PokemonInteractor) {
+class PokemonPresenter(private val interactor: PokemonInteractor) {
 
     private val compositeDisposable = CompositeDisposable()
     private val stateSubject = BehaviorSubject.create<PokemonViewState>()
@@ -47,7 +47,7 @@ class PokemonPresenter(val interactor: PokemonInteractor) {
 
 
         val resultStateObservable = actionStreamObservable.scan(PokemonViewState(), reducer)
-            //Prevent from multiple call render when emited state is not changing
+            //Prevent from multiple call render when emitted state is not changing
             .distinctUntilChanged()
             .replay(1)
             .autoConnect(0)
