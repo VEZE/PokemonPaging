@@ -3,6 +3,7 @@ package com.veze.pokemonpaging.ui.main
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.functions.BiFunction
+import io.reactivex.rxjava3.kotlin.plusAssign
 import io.reactivex.rxjava3.subjects.BehaviorSubject
 import java.util.concurrent.TimeUnit
 
@@ -17,43 +18,45 @@ import java.util.concurrent.TimeUnit
 class PokemonPresenter(private val interactor: PokemonInteractor) {
 
     private val compositeDisposable = CompositeDisposable()
-    private val stateSubject = BehaviorSubject.create<PokemonViewState>()
+    private val stateSubject =
+        BehaviorSubject.create<PokemonViewState>(PokemonViewState.StartProgress)
 
-    fun getStateStream(): Observable<PokemonViewState> = stateSubject
+
 
     fun bind(mainView: PokemonView) {
-        val actionStreamObservable =
+        compositeDisposable +=
             mainView.getIntentsStream()
-                .flatMap { pokemonAction ->
+                .switchMap { pokemonAction ->
                     when (pokemonAction) {
-                        PokemonView.PokemonIntent.Initial -> {
+                        PokemonView.PokemonIntent.InitView {
+                            stateSubject.firstOrError()
+                        }
+
+                                PokemonView . PokemonIntent . Initial -> {
                             Observable.just(PokemonAction.SubmitList(emptyList()))
                                 .delay(1000, TimeUnit.MILLISECONDS)
                         }
                         PokemonView.PokemonIntent.Refresh -> {
                             interactor.getPokemons().map {
                                 return@map PokemonAction.SubmitList(it)
-                            }
+                            }.startWith(Observable.just(PokemonAction.PagingLoading))
                         }
                         is PokemonView.PokemonIntent.LoadPagination -> {
                             interactor.getPokemons(pokemonAction.offset).map {
                                 return@map PokemonAction.SubmitPagingList(it)
-                            }.doOnSubscribe { PokemonAction.PagingLoading }
+                            }.startWith(Observable.just(PokemonAction.PagingLoading))
                         }
                     }
                 }
-                .startWithArray(PokemonAction.Loading)
                 .onErrorReturn { error -> PokemonAction.Error(error = error) }
+                .scan(PokemonViewState(), reducer)
+                .distinctUntilChanged()
+                .observeOn()
+                .subscribe {
+                    stateSubject.onNext(it)
+                    mainView.render(it)
+                }
 
-
-        val resultStateObservable = actionStreamObservable.scan(PokemonViewState(), reducer)
-            //Prevent from multiple call render when emitted state is not changing
-            .distinctUntilChanged()
-            .replay(1)
-            .autoConnect(0)
-            .subscribeWith(stateSubject)
-
-        compositeDisposable.add(resultStateObservable.subscribe())
     }
 
     private val reducer = BiFunction { previousViewState: PokemonViewState, result: PokemonAction ->
@@ -81,4 +84,6 @@ class PokemonPresenter(private val interactor: PokemonInteractor) {
     fun unbind() {
         compositeDisposable.clear()
     }
+
+
 }
