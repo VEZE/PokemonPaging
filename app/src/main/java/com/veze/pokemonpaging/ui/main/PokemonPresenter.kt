@@ -32,12 +32,12 @@ class PokemonPresenter(private val interactor: PokemonInteractor) {
                     }
                     PokemonView.PokemonIntent.Refresh -> {
                         interactor.getPokemons().map {
-                            return@map PokemonAction.SubmitList(it)
+                            return@map PokemonAction.SubmitList(it) as PokemonAction
                         }.startWith(Observable.just(PokemonAction.Loading))
                     }
                     is PokemonView.PokemonIntent.LoadPagination -> {
                         interactor.getPokemons(pokemonAction.offset).map {
-                            return@map PokemonAction.SubmitPagingList(it)
+                            return@map PokemonAction.SubmitPagingList(it) as PokemonAction
                         }.startWith(Observable.just(PokemonAction.PagingLoading))
                     }
                 }
