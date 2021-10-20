@@ -3,6 +3,7 @@ package com.veze.pokemonpaging.ui.main
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.functions.BiFunction
+import io.reactivex.rxjava3.kotlin.plusAssign
 import io.reactivex.rxjava3.subjects.BehaviorSubject
 import java.util.concurrent.TimeUnit
 
@@ -19,41 +20,36 @@ class PokemonPresenter(private val interactor: PokemonInteractor) {
     private val compositeDisposable = CompositeDisposable()
     private val stateSubject = BehaviorSubject.create<PokemonViewState>()
 
-    fun getStateStream(): Observable<PokemonViewState> = stateSubject
-
     fun bind(mainView: PokemonView) {
-        val actionStreamObservable =
-            mainView.getIntentsStream()
-                .flatMap { pokemonAction ->
-                    when (pokemonAction) {
-                        PokemonView.PokemonIntent.Initial -> {
-                            Observable.just(PokemonAction.SubmitList(emptyList()))
-                                .delay(1000, TimeUnit.MILLISECONDS)
-                        }
-                        PokemonView.PokemonIntent.Refresh -> {
-                            interactor.getPokemons().map {
-                                return@map PokemonAction.SubmitList(it)
-                            }
-                        }
-                        is PokemonView.PokemonIntent.LoadPagination -> {
-                            interactor.getPokemons(pokemonAction.offset).map {
-                                return@map PokemonAction.SubmitPagingList(it)
-                            }.doOnSubscribe { PokemonAction.PagingLoading }
-                        }
+        compositeDisposable += mainView.getIntentsStream()
+            .switchMap { pokemonAction ->
+                when (pokemonAction) {
+                    PokemonView.PokemonIntent.Initial -> {
+                        stateSubject.firstOrError()
+
+                        Observable.just(PokemonAction.SubmitList(emptyList()))
+                            .delay(1000, TimeUnit.MILLISECONDS)
+                    }
+                    PokemonView.PokemonIntent.Refresh -> {
+                        interactor.getPokemons().map {
+                            return@map PokemonAction.SubmitList(it)
+                        }.startWith(Observable.just(PokemonAction.Loading))
+                    }
+                    is PokemonView.PokemonIntent.LoadPagination -> {
+                        interactor.getPokemons(pokemonAction.offset).map {
+                            return@map PokemonAction.SubmitPagingList(it)
+                        }.startWith(Observable.just(PokemonAction.PagingLoading))
                     }
                 }
-                .startWithArray(PokemonAction.Loading)
-                .onErrorReturn { error -> PokemonAction.Error(error = error) }
-
-
-        val resultStateObservable = actionStreamObservable.scan(PokemonViewState(), reducer)
-            //Prevent from multiple call render when emitted state is not changing
+            }
+            .onErrorReturn { error -> PokemonAction.Error(error = error) }
+            .scan(PokemonViewState(), reducer)
             .distinctUntilChanged()
-            .replay(1)
-            .autoConnect(0)
-            .subscribeWith(stateSubject)
+            .subscribe {
+                stateSubject.onNext(it)
+                mainView.render(it)
+            }
 
-        compositeDisposable.add(resultStateObservable.subscribe())
     }
 
     private val reducer = BiFunction { previousViewState: PokemonViewState, result: PokemonAction ->
@@ -67,8 +63,8 @@ class PokemonPresenter(private val interactor: PokemonInteractor) {
                 pagingProgress = false
             )
             is PokemonAction.SubmitPagingList -> previousViewState.copy(
+                pokemonList = previousViewState.pokemonList + result.pagingPokemonList,
                 progress = false,
-                pagingPokemonList = result.pagingPokemonList,
                 pagingProgress = false
             )
             PokemonAction.PagingLoading -> previousViewState.copy(

@@ -4,7 +4,6 @@ import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.google.android.material.snackbar.Snackbar
 import com.veze.pokemonpaging.R
 import com.veze.pokemonpaging.data.model.Pokemon
 import com.veze.pokemonpaging.databinding.ActivityPokemonsBinding
@@ -37,24 +36,12 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
 
         setUpRecycler()
 
-        renderFromStateStream()
-
         setSupportActionBar(findViewById(R.id.toolbar))
-        binding.fab.setOnClickListener { view ->
-            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                .setAction("Action", null).show()
-        }
-    }
-
-    private fun renderFromStateStream() {
-        mainPresenter.getStateStream().subscribe { render(it) }
     }
 
     override fun render(state: PokemonViewState) = with(state) {
-        showLoading(progress)
+        showLoading(progress, pagingProgress)
         showPokemonList(pokemonList)
-
-        if (pagingPokemonList.isNotEmpty()) loadPagingList(pagingPokemonList)
 
         if (error != null) showError(error)
 
@@ -76,18 +63,14 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
         }
     }
 
-    private fun loadPagingList(pagingPokemonList: List<Pokemon>) {
-        showToast("Loaded more items count= ${pagingPokemonList.size}")
-
-        pokemonAdapter.submitList(pokemonAdapter.currentList + pagingPokemonList)
-    }
-
     private fun showPokemonList(pokemonList: List<Pokemon>) {
         pokemonAdapter.submitList(pokemonList)
     }
 
-    private fun showLoading(progress: Boolean) {
-        binding.contentScrolling.swiperefresh.isRefreshing = progress
+    private fun showLoading(progress: Boolean, pagingProgress: Boolean) {
+        val resultProgress = progress || pagingProgress
+
+        binding.contentScrolling.swiperefresh.isRefreshing = resultProgress
     }
 
     private fun showError(error: Throwable) = showToast("${error.message}")
