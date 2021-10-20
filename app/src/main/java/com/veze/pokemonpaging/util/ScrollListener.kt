@@ -8,12 +8,12 @@ class ScrollListener(private val pagingListener: PagingListener) :
     override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
         super.onScrolled(recyclerView, dx, dy)
         val layoutManager = recyclerView.layoutManager as LinearLayoutManager
-        val lastItem = recyclerView.adapter?.itemCount ?: return
+        val adapter = recyclerView.adapter ?: return
 
         val lastVisibleItem = layoutManager.findLastVisibleItemPosition()
 
-        if (lastVisibleItem == lastItem - 1) {
-            pagingListener.onNextPage(recyclerView.adapter!!.itemCount)
+        if (lastVisibleItem == adapter.itemCount - 1) {
+            pagingListener.onNextPage(adapter.itemCount)
         }
     }
 
