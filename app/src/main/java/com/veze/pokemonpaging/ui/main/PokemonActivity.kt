@@ -3,7 +3,9 @@ package com.veze.pokemonpaging.ui.main
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.ConcatAdapter
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.veze.pokemonpaging.R
 import com.veze.pokemonpaging.data.model.Pokemon
 import com.veze.pokemonpaging.databinding.ActivityPokemonsBinding
@@ -16,7 +18,16 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
 
     private lateinit var binding: ActivityPokemonsBinding
 
-    private lateinit var pokemonAdapter: PokemonAdapter
+    private var pokemonAdapter: PokemonAdapter =
+        PokemonAdapter { Log.d("TAG", "onCreate: ") }
+    private var loadingAdapter: LoadingAdapter = LoadingAdapter()
+
+    private val concatAdapter: ConcatAdapter by lazy {
+        ConcatAdapter(
+            pokemonAdapter,
+            loadingAdapter
+        )
+    }
 
     private val mainPresenter: PokemonPresenter by lazy { PokemonPresenter(PokemonInteractor()) }
 
@@ -48,12 +59,12 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
     }
 
     private fun setUpRecycler() = with(binding.contentScrolling.pokemonRecycler) {
-        layoutManager = LinearLayoutManager(this@PokemonActivity)
+        layoutManager = LinearLayoutManager(this@PokemonActivity, RecyclerView.VERTICAL, false)
 
-        pokemonAdapter = PokemonAdapter { Log.d("TAG", "onCreate: ") }
-        adapter = pokemonAdapter
+        adapter = concatAdapter
 
         addOnScrollListener(ScrollListener(PokemonNewPageListener(pagingActionPublisher)))
+
     }
 
     private fun setUpSwipeToRefresh() {
@@ -64,13 +75,23 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
     }
 
     private fun showPokemonList(pokemonList: List<Pokemon>) {
-        pokemonAdapter.submitList(pokemonList)
+        binding.contentScrolling.pokemonRecycler.post {
+            pokemonAdapter.submitList(pokemonList)
+        }
     }
 
     private fun showLoading(progress: Boolean, pagingProgress: Boolean) {
-        val resultProgress = progress || pagingProgress
+        binding.contentScrolling.pokemonRecycler.post {
+            showPaginationLoading(pagingProgress)
+        }
 
-        binding.contentScrolling.swiperefresh.isRefreshing = resultProgress
+        binding.contentScrolling.swiperefresh.isRefreshing = progress || pagingProgress
+    }
+
+    //TODO how to prevent view from moving to the end when loading is ended?
+    private fun showPaginationLoading(pagingProgress: Boolean) = when (pagingProgress) {
+        true -> loadingAdapter.loadState = LoadState.Loading
+        false -> loadingAdapter.loadState = LoadState.Done
     }
 
     private fun showError(error: Throwable) = showToast("${error.message}")
