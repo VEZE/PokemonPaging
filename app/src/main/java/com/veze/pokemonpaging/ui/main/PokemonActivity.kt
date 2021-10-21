@@ -63,7 +63,7 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
 
         adapter = concatAdapter
 
-        addOnScrollListener(ScrollListener(PokemonNewPageListener(pagingActionPublisher)))
+        addOnScrollListener(ScrollListener(PokemonPagingListener(pagingActionPublisher)))
 
     }
 

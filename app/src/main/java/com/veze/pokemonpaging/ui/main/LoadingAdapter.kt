@@ -1,4 +1,4 @@
-package com.veze.pokemonpaging.util
+package com.veze.pokemonpaging.ui.main
 
 import android.view.LayoutInflater
 import android.view.View
@@ -20,14 +20,6 @@ class LoadingAdapter : RecyclerView.Adapter<LoadingAdapter.LoadingViewHolder>() 
             field = value
         }
 
-    class LoadingViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-
-        fun bind(loadState: LoadState) = with(itemView) {
-            val progress = findViewById<TextView>(R.id.loading)
-            progress.isVisible = LoadState.Loading == loadState
-        }
-    }
-
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): LoadingViewHolder =
         LoadingViewHolder(
             LayoutInflater.from(parent.context).inflate(R.layout.loading, parent, false)
@@ -38,6 +30,14 @@ class LoadingAdapter : RecyclerView.Adapter<LoadingAdapter.LoadingViewHolder>() 
     }
 
     override fun getItemCount(): Int = 1
+
+    class LoadingViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+
+        fun bind(loadState: LoadState) = with(itemView) {
+            val progress = findViewById<TextView>(R.id.loading)
+            progress.isVisible = LoadState.Loading == loadState
+        }
+    }
 }
 
 sealed class LoadState {

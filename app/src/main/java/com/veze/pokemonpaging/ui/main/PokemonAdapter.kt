@@ -1,4 +1,4 @@
-package com.veze.pokemonpaging.util
+package com.veze.pokemonpaging.ui.main
 
 import android.view.LayoutInflater
 import android.view.View

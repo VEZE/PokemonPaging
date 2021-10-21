@@ -3,7 +3,7 @@ package com.veze.pokemonpaging.util
 import com.veze.pokemonpaging.ui.main.PokemonView
 import io.reactivex.rxjava3.subjects.PublishSubject
 
-class PokemonNewPageListener(
+class PokemonPagingListener(
     private val publisher: PublishSubject<PokemonView.PokemonIntent.LoadPagination>
 ) : PagingListener {
     override fun onNextPage(offset: Int) {
