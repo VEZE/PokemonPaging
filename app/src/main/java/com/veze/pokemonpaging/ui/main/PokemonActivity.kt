@@ -50,13 +50,24 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
         setSupportActionBar(findViewById(R.id.toolbar))
     }
 
-    override fun render(state: PokemonViewState) = with(state) {
-        showLoading(progress, pagingProgress)
-        showPokemonList(pokemonList)
+    override fun render(state: NewPokemonViewState) =
+        when (state) {
+            is NewPokemonViewState.LoadingError -> showError(state.reason)
+            is NewPokemonViewState.PokemonData -> {
+                showPokemonList(state.data)
+                showLoading(
+                    state.progress
+                )
+            }
+            is NewPokemonViewState.Loading -> showLoading(
+                state.progress
+            )
+//        showLoading(progress, pagingProgress)
+//        showPokemonList(pokemonList)
 
-        if (error != null) showError(error)
-
-    }
+//        if (error != null) showError(error)
+            is NewPokemonViewState.PokemonDataProvider -> TODO()
+        }
 
     private fun setUpRecycler() = with(binding.contentScrolling.pokemonRecycler) {
         layoutManager = LinearLayoutManager(this@PokemonActivity, RecyclerView.VERTICAL, false)
@@ -80,12 +91,13 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
         }
     }
 
-    private fun showLoading(progress: Boolean, pagingProgress: Boolean) {
+    private fun showLoading(progressState: NewPokemonViewState.Progress) {
         binding.contentScrolling.pokemonRecycler.post {
-            showPaginationLoading(pagingProgress)
+            showPaginationLoading(progressState.pagingProgress)
         }
 
-        binding.contentScrolling.swiperefresh.isRefreshing = progress || pagingProgress
+        binding.contentScrolling.swiperefresh.isRefreshing =
+            progressState.screenProgress || progressState.pagingProgress
     }
 
     //TODO how to prevent view from moving to the end when loading is ended?
