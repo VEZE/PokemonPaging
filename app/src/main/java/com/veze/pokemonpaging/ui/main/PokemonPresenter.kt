@@ -4,6 +4,7 @@ import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.functions.BiFunction
 import io.reactivex.rxjava3.kotlin.plusAssign
+import io.reactivex.rxjava3.kotlin.subscribeBy
 import io.reactivex.rxjava3.subjects.BehaviorSubject
 import java.util.concurrent.TimeUnit
 
@@ -15,12 +16,15 @@ import java.util.concurrent.TimeUnit
  *
  * @param interactor  used for interaction with data layer
  */
-class PokemonPresenter(private val interactor: PokemonInteractor) {
+class PokemonPresenter(
+    private val interactor: PokemonInteractor,
+    private val mainView: PokemonView
+) {
 
     private val compositeDisposable = CompositeDisposable()
     private val stateSubject = BehaviorSubject.create<PokemonViewState>()
 
-    fun bind(mainView: PokemonView) {
+    fun bind() {
         compositeDisposable += mainView.getIntentsStream()
             .switchMap { pokemonAction ->
                 when (pokemonAction) {
@@ -45,14 +49,15 @@ class PokemonPresenter(private val interactor: PokemonInteractor) {
             .onErrorReturn { error -> PokemonAction.Error(error = error) }
             .scan(PokemonViewState(), reducer)
             .distinctUntilChanged()
-            .subscribe {
-                stateSubject.onNext(it)
-                mainView.render(it)
-            }
-
+            .subscribeBy(
+                onNext = {
+                    stateSubject.onNext(it)
+                    mainView.render(it)
+                }
+            )
     }
 
-    private val reducer = BiFunction { previousViewState: PokemonViewState, result: PokemonAction ->
+    val reducer = BiFunction { previousViewState: PokemonViewState, result: PokemonAction ->
 
         return@BiFunction when (result) {
             is PokemonAction.Loading -> previousViewState.copy(progress = true)

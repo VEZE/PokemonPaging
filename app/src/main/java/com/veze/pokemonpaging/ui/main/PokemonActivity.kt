@@ -29,7 +29,12 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
         )
     }
 
-    private val mainPresenter: PokemonPresenter by lazy { PokemonPresenter(PokemonInteractor()) }
+    private val mainPresenter: PokemonPresenter by lazy {
+        PokemonPresenter(
+            PokemonInteractor(),
+            this
+        )
+    }
 
     private val refreshActionPublisher = PublishSubject.create<PokemonView.PokemonIntent.Refresh>()
     private val pagingActionPublisher =
@@ -115,7 +120,7 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
 
     override fun onStart() {
         super.onStart()
-        mainPresenter.bind(this)
+        mainPresenter.bind()
 
     }
 
