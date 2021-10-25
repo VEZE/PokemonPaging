@@ -10,7 +10,6 @@ import com.veze.pokemonpaging.R
 
 class LoadingAdapter : RecyclerView.Adapter<LoadingAdapter.LoadingViewHolder>() {
 
-    //TODO notifyItemChanged is too complex mb should use notifyItem Moved/Removed?
     var loadState: LoadState = LoadState.Done
         set(value) {
             when (field) {
