@@ -7,6 +7,8 @@ import com.veze.pokemonpaging.mvi.MviAction
  *
  */
 sealed class PokemonAction : MviAction {
+    data class Initial(val lastState: PokemonViewState) : PokemonAction()
+
     object Loading : PokemonAction()
     data class SubmitList(val pokemonList: List<Pokemon>) : PokemonAction()
 

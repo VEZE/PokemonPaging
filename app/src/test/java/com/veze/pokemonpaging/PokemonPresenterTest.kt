@@ -4,17 +4,20 @@ import com.veze.pokemonpaging.data.model.Pokemon
 import com.veze.pokemonpaging.ui.main.*
 import io.mockk.*
 import io.reactivex.rxjava3.core.Observable
+import io.reactivex.rxjava3.subjects.BehaviorSubject
+import io.reactivex.rxjava3.subjects.PublishSubject
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 class PokemonPresenterTest {
 
-    val pokemonInteractor: PokemonInteractor = mockk()
-    val view: PokemonView = mockk()
+    private val pokemonInteractor: PokemonInteractor = mockk()
+    private val view: PokemonView = mockk()
 
-    lateinit var mockPresenter: PokemonPresenter
+    private val pokemonReducer = PokemonPresenter.PokemonReducer()
+
+    private lateinit var mockPresenter: PokemonPresenter
 
     @BeforeEach
     fun setUp() {
@@ -36,10 +39,23 @@ class PokemonPresenterTest {
 
         every { pokemonInteractor.getPokemons() } returns Observable.just(result)
 
-        every { view.getIntentsStream() } returns Observable.merge(
-            Observable.just(PokemonView.PokemonIntent.Refresh),
-            Observable.just(PokemonView.PokemonIntent.Initial),
-            Observable.just(PokemonView.PokemonIntent.LoadPagination(10))
+        val initialPublisher = PublishSubject.create<PokemonView.PokemonIntent.Initial>()
+
+        val refreshPublisher =
+            BehaviorSubject.createDefault(PokemonView.PokemonIntent.Refresh)
+
+
+        val pagingPublisher =
+            PublishSubject.create<PokemonView.PokemonIntent.LoadPagination>()
+
+
+
+        every { view.getIntentsStream() } returns Observable.fromIterable(
+            listOf<PokemonView.PokemonIntent>(
+                PokemonView.PokemonIntent.Refresh,
+                PokemonView.PokemonIntent.Initial,
+                PokemonView.PokemonIntent.LoadPagination(10)
+            )
         )
         every { view.render(any()) } just Runs
 
@@ -47,10 +63,8 @@ class PokemonPresenterTest {
 
         verify { pokemonInteractor.getPokemons(any(), any()) }
 
-        verify(exactly = 1) {
-            view.render(withArg {
-                assertTrue(it == PokemonViewState(pokemonList = result))
-            })
+        verify(exactly = 4) {
+            view.render(any())
         }
         verify { view.render(PokemonViewState(pokemonList = result)) }
     }
@@ -58,72 +72,64 @@ class PokemonPresenterTest {
     @Test
     fun testReducer() {
         val pokemonViewState = PokemonViewState()
-        var pokemonAction: PokemonAction
-
 
         val pokemon1: Pokemon = mockk()
         val pokemon2: Pokemon = mockk()
 
         val resultList = mutableListOf(pokemon1, pokemon2)
 
+        pokemonViewState.apply {
 
-        pokemonAction = PokemonAction.Loading
-
-        callReducer(pokemonViewState, pokemonAction, pokemonViewState.copy(progress = true))
-
-        pokemonAction = PokemonAction.PagingLoading
-
-        callReducer(
-            pokemonViewState,
-            pokemonAction,
-            pokemonViewState.copy(pagingProgress = true)
-        )
-
-        pokemonAction = PokemonAction.SubmitList(resultList)
-
-        callReducer(
-            pokemonViewState,
-            pokemonAction,
-            pokemonViewState.copy(
-                progress = false,
-                pokemonList = resultList
+            assertReducer(
+                PokemonAction.Loading,
+                pokemonViewState.copy(progress = true)
             )
-        )
 
-        pokemonAction = PokemonAction.SubmitPagingList(resultList)
 
-        callReducer(
-            pokemonViewState,
-            pokemonAction,
-            pokemonViewState.copy(
-                pagingProgress = false,
-                pokemonList = resultList + pokemonViewState.pokemonList
+            assertReducer(
+                PokemonAction.PagingLoading,
+                pokemonViewState.copy(pagingProgress = true)
             )
-        )
 
-        val mockError = Throwable("mocked error")
 
-        pokemonAction = PokemonAction.Error(mockError)
-
-        callReducer(
-            pokemonViewState,
-            pokemonAction,
-            pokemonViewState.copy(
-                progress = false,
-                error = mockError
+            assertReducer(
+                PokemonAction.SubmitList(resultList),
+                pokemonViewState.copy(
+                    progress = false,
+                    pokemonList = resultList
+                )
             )
-        )
+
+
+            assertReducer(
+                PokemonAction.SubmitPagingList(resultList),
+                pokemonViewState.copy(
+                    pagingProgress = false,
+                    pokemonList = resultList + pokemonViewState.pokemonList
+                )
+            )
+
+            val mockError = Throwable("mocked error")
+
+            assertReducer(
+                PokemonAction.Error(mockError),
+                pokemonViewState.copy(
+                    progress = false,
+                    error = mockError
+                )
+            )
+        }
 
     }
 
-    private fun callReducer(
-        pokemonViewState: PokemonViewState,
+    fun PokemonViewState.assertReducer(
         pokemonAction: PokemonAction,
         resultState: PokemonViewState
     ) {
-        val result = mockPresenter.reducer.apply(pokemonViewState, pokemonAction)
+        pokemonReducer.apply(this, pokemonAction).apply {
+            assertEquals(this, resultState)
+        }
 
-        assertEquals(result, resultState)
     }
 
 }

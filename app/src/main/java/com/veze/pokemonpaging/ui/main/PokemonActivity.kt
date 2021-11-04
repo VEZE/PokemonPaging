@@ -11,7 +11,9 @@ import com.veze.pokemonpaging.data.model.Pokemon
 import com.veze.pokemonpaging.databinding.ActivityPokemonsBinding
 import com.veze.pokemonpaging.util.*
 import io.reactivex.rxjava3.core.Observable
+import io.reactivex.rxjava3.subjects.BehaviorSubject
 import io.reactivex.rxjava3.subjects.PublishSubject
+import java.lang.ref.WeakReference
 
 
 class PokemonActivity : AppCompatActivity(), PokemonView {
@@ -29,17 +31,22 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
         )
     }
 
-    private val mainPresenter: PokemonPresenter by lazy {
+    private val mainPresenter: PokemonPresenter =
         PokemonPresenter(
             PokemonInteractor(),
-            this
+            WeakReference(this)
         )
-    }
 
     private val refreshActionPublisher = PublishSubject.create<PokemonView.PokemonIntent.Refresh>()
     private val pagingActionPublisher =
         PublishSubject.create<PokemonView.PokemonIntent.LoadPagination>()
 
+    private val initialPublisher = BehaviorSubject.create<PokemonView.PokemonIntent.Initial>()
+
+    override fun onResume() {
+        super.onResume()
+        initialPublisher.onNext(PokemonView.PokemonIntent.Initial)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -93,7 +100,6 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
         binding.contentScrolling.swiperefresh.isRefreshing = progress || pagingProgress
     }
 
-    //TODO how to prevent view from moving to the end when loading is ended?
     private fun showPaginationLoading(pagingProgress: Boolean) = when (pagingProgress) {
         true -> loadingAdapter.loadState = LoadState.Loading
         false -> loadingAdapter.loadState = LoadState.Done
@@ -106,16 +112,20 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
         return refreshActionPublisher
     }
 
-    private fun initAction(): Observable<PokemonView.PokemonIntent.Initial> {
-        return Observable.just(PokemonView.PokemonIntent.Initial)
-    }
-
     private fun loadPaginationAction(): Observable<PokemonView.PokemonIntent.LoadPagination> {
         return pagingActionPublisher
     }
 
+    private fun initialAction(): Observable<PokemonView.PokemonIntent.Initial> {
+        return initialPublisher
+    }
+
     override fun getIntentsStream(): Observable<PokemonView.PokemonIntent> {
-        return Observable.merge(refreshAction(), initAction(), loadPaginationAction())
+        return Observable.merge(
+            initialAction(),
+            refreshAction(),
+            loadPaginationAction()
+        )
     }
 
     override fun onStart() {
