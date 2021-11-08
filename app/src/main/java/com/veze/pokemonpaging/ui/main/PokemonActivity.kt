@@ -100,7 +100,7 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
         null -> {
         }
         is PaginationException -> loadingAdapter.loadState = LoadState.Error(exception)
-        else -> showError(exception)
+        else -> showException(exception)
     }
 
     private fun initIntent(): Observable<PokemonIntent.Initial> = initialPublisher
@@ -118,7 +118,7 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
         )
     }
 
-    private fun showError(error: Throwable) = showToast("${error.message}")
+    private fun showException(exception: Throwable) = showToast("${exception.message}")
 
     override fun onStart() {
         super.onStart()
