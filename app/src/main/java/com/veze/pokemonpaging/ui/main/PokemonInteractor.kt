@@ -50,7 +50,7 @@ class PokemonInteractor(private val pokeApi: PokeApi = PokeClient()) {
     fun getPokemons(
         offset: Int = 0,
         limit: Int = 10
-    ): Observable<MutableList<Pokemon>> {
+    ): Observable<List<Pokemon>> {
 //        if (offset > 20 && isError == false) {
 //            isError = true
 //            return Observable.error(PaginationException("paginationError"))

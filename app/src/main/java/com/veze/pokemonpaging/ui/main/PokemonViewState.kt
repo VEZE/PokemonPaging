@@ -8,8 +8,7 @@ import com.veze.pokemonpaging.mvi.MviViewState
  */
 data class PokemonViewState(
     val progress: Boolean = false,
-    val error: Throwable? = null,
+    val exception: Throwable? = null,
     val pokemonList: List<Pokemon> = listOf(),
-    val pagingProgress: Boolean = false,
-    val pagingPokemonList: List<Pokemon> = listOf()
+    val pagingProgress: Boolean = false
 ) : MviViewState

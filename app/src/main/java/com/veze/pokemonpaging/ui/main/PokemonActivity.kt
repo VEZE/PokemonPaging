@@ -2,6 +2,7 @@ package com.veze.pokemonpaging.ui.main
 
 import android.os.Bundle
 import android.util.Log
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.ConcatAdapter
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -9,43 +10,41 @@ import androidx.recyclerview.widget.RecyclerView
 import com.veze.pokemonpaging.R
 import com.veze.pokemonpaging.data.model.Pokemon
 import com.veze.pokemonpaging.databinding.ActivityPokemonsBinding
-import com.veze.pokemonpaging.util.*
+import com.veze.pokemonpaging.util.EndlessScrollListener
+import com.veze.pokemonpaging.util.PaginationException
+import com.veze.pokemonpaging.util.PokemonPagingListener
+import com.veze.pokemonpaging.util.showToast
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.subjects.BehaviorSubject
 import io.reactivex.rxjava3.subjects.PublishSubject
-import java.lang.ref.WeakReference
 
 
 class PokemonActivity : AppCompatActivity(), PokemonView {
 
     private lateinit var binding: ActivityPokemonsBinding
 
-    private var pokemonAdapter: PokemonAdapter =
-        PokemonAdapter { Log.d("TAG", "onCreate: ") }
-    private var loadingAdapter: LoadingAdapter = LoadingAdapter()
+    private val viewModel by viewModels<PokemonViewModel> { ViewModelFactory() }
+
+    private var pokemonAdapter =
+        PokemonAdapter { Log.d("TAG", "onCreate: ") }.apply {
+            setHasStableIds(true)
+        }
+    private var loadingAdapter =
+        LoadingAdapter() {
+            pagingPublisher.onNext(PokemonIntent.LoadMore(pokemonAdapter.itemCount))
+        }
 
     private val concatAdapter: ConcatAdapter by lazy {
-        ConcatAdapter(
-            pokemonAdapter,
-            loadingAdapter
-        )
+        ConcatAdapter(pokemonAdapter, loadingAdapter)
     }
 
-    private val mainPresenter: PokemonPresenter =
-        PokemonPresenter(
-            PokemonInteractor(),
-            WeakReference(this)
-        )
-
-    private val refreshActionPublisher = PublishSubject.create<PokemonView.PokemonIntent.Refresh>()
-    private val pagingActionPublisher =
-        PublishSubject.create<PokemonView.PokemonIntent.LoadPagination>()
-
-    private val initialPublisher = BehaviorSubject.create<PokemonView.PokemonIntent.Initial>()
+    private val initialPublisher = BehaviorSubject.create<PokemonIntent.Initial>()
+    private val refreshPublisher = PublishSubject.create<PokemonIntent.Refresh>()
+    private val pagingPublisher = PublishSubject.create<PokemonIntent.LoadMore>()
 
     override fun onResume() {
         super.onResume()
-        initialPublisher.onNext(PokemonView.PokemonIntent.Initial)
+        initialPublisher.onNext(PokemonIntent.Initial)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,79 +62,72 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
     }
 
     override fun render(state: PokemonViewState) = with(state) {
-        showLoading(progress, pagingProgress)
-        showPokemonList(pokemonList)
-
-        if (error != null) showError(error)
-
+        showLoading(progress)
+        pagingLoading(pagingProgress)
+        submitList(pokemonList)
+        handleException(exception)
     }
 
-    private fun setUpRecycler() = with(binding.contentScrolling.pokemonRecycler) {
-        layoutManager = LinearLayoutManager(this@PokemonActivity, RecyclerView.VERTICAL, false)
 
+    private fun setUpRecycler() = with(binding.contentScrolling.pokemonRecycler) {
+        layoutManager = LinearLayoutManager(context, RecyclerView.VERTICAL, false)
         adapter = concatAdapter
 
-        addOnScrollListener(ScrollListener(PokemonPagingListener(pagingActionPublisher)))
-
+        addOnScrollListener(EndlessScrollListener(PokemonPagingListener(pagingPublisher)))
     }
 
     private fun setUpSwipeToRefresh() {
         binding.contentScrolling.swiperefresh.setOnRefreshListener {
-            showPokemonList(emptyList())
-            refreshActionPublisher.onNext(PokemonView.PokemonIntent.Refresh)
+            submitList(emptyList())
+            refreshPublisher.onNext(PokemonIntent.Refresh)
         }
     }
 
-    private fun showPokemonList(pokemonList: List<Pokemon>) {
-        binding.contentScrolling.pokemonRecycler.post {
-            pokemonAdapter.submitList(pokemonList)
-        }
+    private fun submitList(pokemonList: List<Pokemon>) {
+        pokemonAdapter.submitList(pokemonList)
     }
 
-    private fun showLoading(progress: Boolean, pagingProgress: Boolean) {
-        binding.contentScrolling.pokemonRecycler.post {
-            showPaginationLoading(pagingProgress)
-        }
-
-        binding.contentScrolling.swiperefresh.isRefreshing = progress || pagingProgress
+    private fun showLoading(progress: Boolean) {
+        binding.contentScrolling.swiperefresh.isRefreshing = progress
     }
 
-    private fun showPaginationLoading(pagingProgress: Boolean) = when (pagingProgress) {
+    private fun pagingLoading(pagingProgress: Boolean) = when (pagingProgress) {
         true -> loadingAdapter.loadState = LoadState.Loading
         false -> loadingAdapter.loadState = LoadState.Done
     }
 
-    private fun showError(error: Throwable) = showToast("${error.message}")
-
-
-    private fun refreshAction(): Observable<PokemonView.PokemonIntent.Refresh> {
-        return refreshActionPublisher
+    private fun handleException(exception: Throwable?) = when (exception) {
+        null -> {
+        }
+        is PaginationException -> loadingAdapter.loadState = LoadState.Error(exception)
+        else -> showError(exception)
     }
 
-    private fun loadPaginationAction(): Observable<PokemonView.PokemonIntent.LoadPagination> {
-        return pagingActionPublisher
-    }
+    private fun initIntent(): Observable<PokemonIntent.Initial> = initialPublisher
 
-    private fun initialAction(): Observable<PokemonView.PokemonIntent.Initial> {
-        return initialPublisher
-    }
+    private fun refreshIntent(): Observable<PokemonIntent.Refresh> = refreshPublisher
 
-    override fun getIntentsStream(): Observable<PokemonView.PokemonIntent> {
+    private fun loadMoreIntent(): Observable<PokemonIntent.LoadMore> =
+        pagingPublisher
+
+    override fun getIntentsStream(): Observable<PokemonIntent> {
         return Observable.merge(
-            initialAction(),
-            refreshAction(),
-            loadPaginationAction()
+            initIntent(),
+            refreshIntent(),
+            loadMoreIntent()
         )
     }
 
+    private fun showError(error: Throwable) = showToast("${error.message}")
+
     override fun onStart() {
         super.onStart()
-        mainPresenter.bind()
+        viewModel.presenter.bind(this)
 
     }
 
     override fun onStop() {
-        mainPresenter.unbind()
+        viewModel.presenter.unbind()
         super.onStop()
     }
 
