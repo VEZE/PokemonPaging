@@ -25,6 +25,8 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
 
     private val viewModel by viewModels<PokemonViewModel> { ViewModelFactory() }
 
+    private val emptyAdapter = EmptyAdapter()
+
     private var pokemonAdapter =
         PokemonAdapter { Log.d("TAG", "onCreate: ") }.apply {
             setHasStableIds(true)
@@ -35,7 +37,7 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
         }
 
     private val concatAdapter: ConcatAdapter by lazy {
-        ConcatAdapter(pokemonAdapter, loadingAdapter)
+        ConcatAdapter(emptyAdapter, pokemonAdapter, loadingAdapter)
     }
 
     private val initialPublisher = BehaviorSubject.create<PokemonIntent.Initial>()
@@ -62,10 +64,15 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
     }
 
     override fun render(state: PokemonViewState) = with(state) {
+        if (pokemonList.isNotEmpty()) dismissEmptyMessage()
         showLoading(progress)
         pagingLoading(pagingProgress)
-        submitList(pokemonList)
+        if (pokemonList.isNotEmpty()) submitList(pokemonList)
         handleException(exception)
+    }
+
+    private fun dismissEmptyMessage() {
+        emptyAdapter.hide = true
     }
 
 

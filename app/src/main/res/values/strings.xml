@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">PokemonPaging</string>
+    <string name="empty_text">Swipe down to refresh list</string>
 </resources>

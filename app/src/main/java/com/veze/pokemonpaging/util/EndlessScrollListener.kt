@@ -3,6 +3,7 @@ package com.veze.pokemonpaging.util
 import androidx.recyclerview.widget.ConcatAdapter
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.veze.pokemonpaging.ui.main.EmptyAdapter
 import com.veze.pokemonpaging.ui.main.LoadState
 import com.veze.pokemonpaging.ui.main.LoadingAdapter
 import com.veze.pokemonpaging.ui.main.PokemonAdapter
@@ -23,6 +24,13 @@ class EndlessScrollListener(private val pagingListener: PagingListener) :
 
         val pokemonAdapter =
             (adapter.adapters.findLast { it is PokemonAdapter } ?: return) as PokemonAdapter
+
+        val emptyAdapter =
+            (adapter.adapters.findLast { it is EmptyAdapter } ?: return) as EmptyAdapter
+
+        if (!emptyAdapter.hide) {
+            return
+        }
 
         val itemsCount = pokemonAdapter.itemCount
 
