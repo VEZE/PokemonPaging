@@ -1,13 +1,22 @@
 package com.veze.pokemonpaging.ui.main
 
-import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import com.veze.pokemonpaging.R
 import com.veze.pokemonpaging.databinding.LoadingBinding
+import com.veze.pokemonpaging.util.inflateView
 
-class LoadingAdapter : RecyclerView.Adapter<FooterStateViewHolder>() {
+/**
+ *  Adapter presents LoadingView at the end of list with states:
+ *
+ *  [LoadState.Loading] - Showing progress
+ *  [LoadState.Done] - Removing Progress
+ *  [LoadState.Error] - Show view with retry button and exception
+ *
+ */
+class LoadingAdapter(private val retryAction: () -> Unit) :
+    RecyclerView.Adapter<FooterViewHolder>() {
 
     var loadState: LoadState = LoadState.Done
         set(loadState) {
@@ -23,16 +32,12 @@ class LoadingAdapter : RecyclerView.Adapter<FooterStateViewHolder>() {
             }
         }
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FooterStateViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.loading, parent, false)
-
-        val binding = LoadingBinding.bind(view)
-
-        return FooterStateViewHolder(binding) {}
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): FooterViewHolder {
+        val binding = LoadingBinding.bind(parent.inflateView(R.layout.loading))
+        return FooterViewHolder(binding, retryAction)
     }
 
-    override fun onBindViewHolder(holder: FooterStateViewHolder, position: Int) {
+    override fun onBindViewHolder(holder: FooterViewHolder, position: Int) {
         holder.bind(loadState)
 
     }
@@ -43,7 +48,7 @@ class LoadingAdapter : RecyclerView.Adapter<FooterStateViewHolder>() {
 }
 
 
-class FooterStateViewHolder(private val binding: LoadingBinding, retry: () -> Unit) :
+class FooterViewHolder(private val binding: LoadingBinding, retry: () -> Unit) :
     RecyclerView.ViewHolder(binding.root) {
 
     init {
@@ -62,16 +67,6 @@ class FooterStateViewHolder(private val binding: LoadingBinding, retry: () -> Un
 
     }
 
-    companion object {
-        fun create(parent: ViewGroup, retry: () -> Unit): FooterStateViewHolder {
-            val view = LayoutInflater.from(parent.context)
-                .inflate(R.layout.loading, parent, false)
-
-            val binding = LoadingBinding.bind(view)
-
-            return FooterStateViewHolder(binding, retry)
-        }
-    }
 }
 
 

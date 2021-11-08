@@ -1,6 +1,5 @@
 package com.veze.pokemonpaging.ui.main
 
-import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
@@ -11,9 +10,19 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.Glide
 import com.veze.pokemonpaging.R
 import com.veze.pokemonpaging.data.model.Pokemon
+import com.veze.pokemonpaging.util.inflateView
 
 class PokemonAdapter(private val onClick: (Pokemon) -> Unit) :
     ListAdapter<Pokemon, PokemonAdapter.PokemonViewHolder>(PokemonDiffCallback) {
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PokemonViewHolder {
+        val view = parent.inflateView(R.layout.pokemon_item)
+        return PokemonViewHolder(view, onClick)
+    }
+
+    override fun onBindViewHolder(holder: PokemonViewHolder, position: Int) {
+        holder.bind(getItem(position))
+    }
 
     class PokemonViewHolder(itemView: View, val onClick: (Pokemon) -> Unit) :
         RecyclerView.ViewHolder(itemView) {
@@ -41,18 +50,6 @@ class PokemonAdapter(private val onClick: (Pokemon) -> Unit) :
                 //smth else
             }
         }
-    }
-
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PokemonViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.pokemon_item, parent, false)
-        return PokemonViewHolder(view, onClick)
-    }
-
-    override fun onBindViewHolder(holder: PokemonViewHolder, position: Int) {
-        val pokemon = getItem(position)
-        holder.bind(pokemon)
     }
 }
 
