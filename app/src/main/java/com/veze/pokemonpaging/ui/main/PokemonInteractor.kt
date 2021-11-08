@@ -44,14 +44,26 @@ class PokemonInteractor(private val pokeApi: PokeApi = PokeClient()) {
      * @param limit number of loaded Pokemons
      * @return list of Pokemons
      */
+
+//    var isError = false
+
     fun getPokemons(
         offset: Int = 0,
         limit: Int = 10
     ): Observable<MutableList<Pokemon>> {
+//        if (offset > 20 && isError == false) {
+//            isError = true
+//            return Observable.error(PaginationException("paginationError"))
+//        }
+
         return pokeApi.getPokemonList(offset, limit).flatMap { namedApiResource ->
             return@flatMap Observable.fromIterable(namedApiResource.results).flatMap {
                 pokeApi.getPokemon(urlToId(it.url))
-            }.toList().toObservable()
+            }
+                .subscribeOn(Schedulers.io())
+                .observeOn(Schedulers.computation())
+                .toSortedList { pokemonFirst, pokemonSecond -> pokemonFirst.id - pokemonSecond.id }
+                .toObservable()
         }
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())

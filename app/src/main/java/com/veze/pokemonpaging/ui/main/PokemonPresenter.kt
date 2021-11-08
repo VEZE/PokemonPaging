@@ -1,5 +1,6 @@
 package com.veze.pokemonpaging.ui.main
 
+import com.veze.pokemonpaging.util.PaginationException
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.disposables.CompositeDisposable
@@ -7,6 +8,7 @@ import io.reactivex.rxjava3.functions.BiFunction
 import io.reactivex.rxjava3.kotlin.plusAssign
 import io.reactivex.rxjava3.kotlin.subscribeBy
 import io.reactivex.rxjava3.subjects.BehaviorSubject
+import java.util.concurrent.TimeUnit
 
 /**
  *  Presents  data in reactive way to view.
@@ -16,37 +18,39 @@ import io.reactivex.rxjava3.subjects.BehaviorSubject
  *
  * @param interactor  used for interaction with data layer
  */
-class PokemonPresenter(
-    private val interactor: PokemonInteractor,
-    private val mainView: PokemonView
-) {
+class PokemonPresenter(private val interactor: PokemonInteractor) {
 
     private val compositeDisposable = CompositeDisposable()
     private val stateSubject = BehaviorSubject.createDefault(PokemonViewState())
     private val reducer = PokemonReducer()
 
-    fun bind() {
+    fun bind(mainView: PokemonView) {
         compositeDisposable += mainView.getIntentsStream()
-            .switchMap { pokemonAction ->
-                when (pokemonAction) {
-                    PokemonView.PokemonIntent.Initial -> {
-                        stateSubject.firstOrError().map<PokemonAction> {
-                            return@map PokemonAction.Initial(it)
-                        }.toObservable()
+            .switchMap { intent ->
+                when (intent) {
+                    PokemonIntent.Initial -> {
+                        stateSubject.firstOrError()
+                            .map<PokemonAction> { PokemonAction.Initial.Initialize(it) }
+                            .toObservable()
+                            .onErrorReturn { error -> PokemonAction.Initial.Failure(error = error) }
+
                     }
-                    PokemonView.PokemonIntent.Refresh -> {
-                        interactor.getPokemons().map<PokemonAction> {
-                            return@map PokemonAction.SubmitList(it)
-                        }.startWith(Observable.just(PokemonAction.Loading))
+                    PokemonIntent.Refresh -> {
+                        interactor.getPokemons()
+                            .map<PokemonAction> { PokemonAction.Initial.Success(it) }
+                            .startWith(Observable.just(PokemonAction.Initial.Loading))
+                            .onErrorReturn { error -> PokemonAction.Initial.Failure(error = error) }
+
                     }
-                    is PokemonView.PokemonIntent.LoadPagination -> {
-                        interactor.getPokemons(pokemonAction.offset).map<PokemonAction> {
-                            return@map PokemonAction.SubmitPagingList(it)
-                        }.startWith(Observable.just(PokemonAction.PagingLoading))
+                    is PokemonIntent.LoadMore -> {
+                        interactor.getPokemons(intent.offset)
+                            .map<PokemonAction> { PokemonAction.Paging.Success(it) }
+                            .delay(2000, TimeUnit.MILLISECONDS)
+                            .startWith(Observable.just(PokemonAction.Paging.Loading))
+                            .onErrorReturn { PokemonAction.Paging.Failure(it) }
                     }
                 }
             }
-            .onErrorReturn { error -> PokemonAction.Error(error = error) }
             .scan(PokemonViewState(), reducer::apply)
             .observeOn(AndroidSchedulers.mainThread())
             .distinctUntilChanged()
@@ -56,9 +60,6 @@ class PokemonPresenter(
                     mainView.render(it)
                 }
             )
-        stateSubject.subscribeBy(onNext =
-        { println("OnNext + $it") })
-
     }
 
 
@@ -68,25 +69,29 @@ class PokemonPresenter(
             action: PokemonAction
         ): PokemonViewState {
             return when (action) {
-                is PokemonAction.Initial -> action.lastState
-                is PokemonAction.Loading -> previousViewState.copy(progress = true)
-                is PokemonAction.Error -> previousViewState.copy(
+                is PokemonAction.Initial.Initialize -> action.lastState
+                is PokemonAction.Initial.Loading -> previousViewState.copy(progress = true)
+                is PokemonAction.Initial.Failure -> previousViewState.copy(
                     progress = false,
-                    error = action.error
+                    exception = action.error
                 )
-                is PokemonAction.SubmitList -> previousViewState.copy(
+                is PokemonAction.Initial.Success -> previousViewState.copy(
                     progress = false,
-                    pokemonList = action.pokemonList,
-                    pagingProgress = false
+                    pokemonList = action.result,
+                    exception = null
                 )
-                is PokemonAction.SubmitPagingList -> previousViewState.copy(
-                    pokemonList = previousViewState.pokemonList + action.pagingPokemonList,
-                    progress = false,
-                    pagingProgress = false
+                PokemonAction.Paging.Loading -> previousViewState.copy(
+                    pagingProgress = true,
+                    exception = null
                 )
-                PokemonAction.PagingLoading -> previousViewState.copy(
-                    progress = false,
-                    pagingProgress = true
+                is PokemonAction.Paging.Failure -> previousViewState.copy(
+                    pagingProgress = false,
+                    exception = action.error as PaginationException
+                )
+                is PokemonAction.Paging.Success -> previousViewState.copy(
+                    pokemonList = previousViewState.pokemonList + action.result,
+                    pagingProgress = false,
+                    exception = null
                 )
             }
         }
