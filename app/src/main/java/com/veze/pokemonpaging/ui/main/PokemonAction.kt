@@ -4,16 +4,21 @@ import com.veze.pokemonpaging.data.model.Pokemon
 import com.veze.pokemonpaging.mvi.MviAction
 
 /**
- *
+ * Represents all [PokemonView] action's
  */
 sealed class PokemonAction : MviAction {
-    data class Initial(val lastState: PokemonViewState) : PokemonAction()
 
-    object Loading : PokemonAction()
-    data class SubmitList(val pokemonList: List<Pokemon>) : PokemonAction()
+    sealed class Initial : PokemonAction() {
+        data class Success(val result: MutableList<Pokemon>) : Initial()
+        data class Failure(val error: Throwable) : Initial()
+        data class Initialize(val lastState: PokemonViewState) : Initial()
+        object Loading : Initial()
+    }
 
-    object PagingLoading : PokemonAction()
-    data class SubmitPagingList(val pagingPokemonList: List<Pokemon>) : PokemonAction()
+    sealed class Paging : PokemonAction() {
+        data class Success(val result: MutableList<Pokemon>) : Paging()
+        data class Failure(val error: Throwable) : Paging()
+        object Loading : Paging()
+    }
 
-    data class Error(val error: Throwable) : PokemonAction()
 }
