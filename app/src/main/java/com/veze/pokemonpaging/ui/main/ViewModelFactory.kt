@@ -4,9 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import javax.xml.parsers.FactoryConfigurationError
 
-class ViewModelFactory() : ViewModelProvider.Factory {
+class ViewModelFactory : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return when (modelClass) {
+        when (modelClass) {
             PokemonViewModel::class.java -> {
                 return PokemonViewModel(PokemonPresenter(PokemonInteractor())) as T
             }

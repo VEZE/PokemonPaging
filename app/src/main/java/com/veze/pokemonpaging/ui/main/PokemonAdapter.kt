@@ -62,4 +62,3 @@ object PokemonDiffCallback : DiffUtil.ItemCallback<Pokemon>() {
         return oldItem == newItem
     }
 }
-
