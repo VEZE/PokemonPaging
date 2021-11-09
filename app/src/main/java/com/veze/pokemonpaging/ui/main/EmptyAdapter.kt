@@ -9,12 +9,12 @@ import com.veze.pokemonpaging.util.inflateView
 class EmptyAdapter :
     RecyclerView.Adapter<EmptyAdapter.EmptyViewHolder>() {
 
-    var hide = false
+    var isVisible = true
         set(value) {
             if (field != value) {
                 when {
-                    field -> notifyItemInserted(0)
-                    value -> notifyItemRemoved(0)
+                    field -> notifyItemRemoved(0)
+                    value -> notifyItemInserted(0)
                 }
                 field = value
             }
@@ -28,7 +28,7 @@ class EmptyAdapter :
     override fun onBindViewHolder(holder: EmptyViewHolder, position: Int) {
     }
 
-    override fun getItemCount(): Int = if (hide) 0 else 1
+    override fun getItemCount(): Int = if (isVisible) 1 else 0
 
     class EmptyViewHolder(binding: EmptyBinding) :
         RecyclerView.ViewHolder(binding.root)
