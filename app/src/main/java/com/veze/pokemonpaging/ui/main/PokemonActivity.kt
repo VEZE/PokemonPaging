@@ -72,7 +72,7 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
     }
 
     private fun dismissEmptyMessage() {
-        emptyAdapter.hide = true
+        emptyAdapter.visible = true
     }
 
 

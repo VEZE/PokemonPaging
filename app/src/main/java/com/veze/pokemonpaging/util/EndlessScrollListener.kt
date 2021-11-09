@@ -28,7 +28,7 @@ class EndlessScrollListener(private val pagingListener: PagingListener) :
         val emptyAdapter =
             (adapter.adapters.findLast { it is EmptyAdapter } ?: return) as EmptyAdapter
 
-        if (!emptyAdapter.hide) {
+        if (!emptyAdapter.visible) {
             return
         }
 
