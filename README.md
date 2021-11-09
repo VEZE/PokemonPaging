@@ -1,6 +1,6 @@
 # PokemonPaging
 
-![Build workflow](https://github.com/VEZE/PokemonPaging/blob/master/.github/workflows/android.yml/badge.svg)
+![Build workflow](https://github.com/VEZE/PokemonPaging/actions/workflows/.github/workflows/android.yml/badge.svg)
 
 Application shows list of pokemons
 
