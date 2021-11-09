@@ -16,6 +16,7 @@ class EndlessScrollListener(private val pagingListener: PagingListener) :
     override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
         val layoutManager = recyclerView.layoutManager as LinearLayoutManager
 
+
         val adapter = recyclerView.adapter as ConcatAdapter
 
         val loadingAdapter =
@@ -27,7 +28,7 @@ class EndlessScrollListener(private val pagingListener: PagingListener) :
         val emptyAdapter =
             (adapter.adapters.findLast { it is EmptyAdapter } ?: return) as EmptyAdapter
 
-        if (emptyAdapter.isVisible) {
+        if (!emptyAdapter.hide) {
             return
         }
 
