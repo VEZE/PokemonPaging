@@ -1,5 +1,7 @@
 # PokemonPaging
 
+[![Android CI Build](https://github.com/VEZE/PokemonPaging/actions/workflows/android.yml/badge.svg)](https://github.com/VEZE/PokemonPaging/actions/workflows/android.yml)
+
 Application shows list of pokemons
 
 
