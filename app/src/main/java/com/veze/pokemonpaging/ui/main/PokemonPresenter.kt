@@ -66,7 +66,7 @@ class PokemonPresenter(private val interactor: PokemonInteractor) {
     class PokemonReducer : BiFunction<PokemonViewState, PokemonAction, PokemonViewState> {
         override fun apply(
             previousViewState: PokemonViewState,
-            action: PokemonAction
+            action: PokemonAction,
         ): PokemonViewState {
             return when (action) {
                 is PokemonAction.Initial.Initialize -> action.lastState
@@ -86,7 +86,7 @@ class PokemonPresenter(private val interactor: PokemonInteractor) {
                 )
                 is PokemonAction.Paging.Failure -> previousViewState.copy(
                     pagingProgress = false,
-                    exception = action.error as PaginationException
+                    exception = PaginationException(action.error)
                 )
                 is PokemonAction.Paging.Success -> previousViewState.copy(
                     pokemonList = previousViewState.pokemonList + action.result,

@@ -1,5 +1,5 @@
 package com.veze.pokemonpaging.util
 
 
-class PaginationException(message: String) : Exception(message)
+class PaginationException(reason: Throwable) : Exception(reason)
 
