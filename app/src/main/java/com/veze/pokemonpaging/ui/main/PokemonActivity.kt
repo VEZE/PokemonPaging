@@ -27,8 +27,10 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
 
     private val emptyAdapter = EmptyAdapter()
 
+    private val detailsPublisher = PublishSubject.create<PokemonIntent.LoadDetails>()
+
     private var pokemonAdapter =
-        PokemonAdapter { Log.d("TAG", "onCreate: ") }.apply {
+        PokemonAdapter(detailsPublisher) { Log.d("TAG", "onCreate: ") }.apply {
             setHasStableIds(true)
         }
     private var loadingAdapter =
@@ -117,11 +119,14 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
     private fun loadMoreIntent(): Observable<PokemonIntent.LoadMore> =
         pagingPublisher
 
+    private fun loadDetails(): Observable<PokemonIntent.LoadDetails> = detailsPublisher
+
     override fun getIntentsStream(): Observable<PokemonIntent> {
         return Observable.merge(
             initIntent(),
             refreshIntent(),
-            loadMoreIntent()
+            loadMoreIntent(),
+            loadDetails()
         )
     }
 

@@ -112,21 +112,30 @@ data class NaturePokeathlonStatAffect(
 data class Pokemon(
     val id: Int,
     val name: String,
-    val baseExperience: Int,
-    val height: Int,
-    val isDefault: Boolean,
-    val order: Int,
-    val weight: Int,
-    val species: NamedApiResource,
-    val abilities: List<PokemonAbility>,
-    val forms: List<NamedApiResource>,
-    val gameIndices: List<VersionGameIndex>,
-    val heldItems: List<PokemonHeldItem>,
-    val moves: List<PokemonMove>,
-    val stats: List<PokemonStat>,
-    val types: List<PokemonType>,
-    val sprites: PokemonSprites
+    val baseExperience: Int = 0,
+    val height: Int = 0,
+    val isDefault: Boolean = false,
+    val order: Int? = null,
+    val weight: Int = 0,
+    val species: NamedApiResource? = null,
+    val abilities: List<PokemonAbility>? = null,
+    val forms: List<NamedApiResource>? = null,
+    val gameIndices: List<VersionGameIndex>? = null,
+    val heldItems: List<PokemonHeldItem>? = null,
+    val moves: List<PokemonMove>? = null,
+    val stats: List<PokemonStat>? = null,
+    val types: List<PokemonType>? = null,
+    val sprites: PokemonSprites? = null,
+    val status: PokemonItemStatus = PokemonItemStatus.Empty,
+    val url: String? = null
 )
+
+sealed class PokemonItemStatus {
+    object Empty : PokemonItemStatus()
+    object InProgress : PokemonItemStatus()
+    object Error : PokemonItemStatus()
+    object Updated : PokemonItemStatus()
+}
 
 data class PokemonSprites(
     val backDefault: String?,

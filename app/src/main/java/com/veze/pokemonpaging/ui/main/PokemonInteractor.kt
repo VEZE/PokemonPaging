@@ -57,15 +57,21 @@ class PokemonInteractor(private val pokeApi: PokeApi = PokeClient()) {
 //        }
 
         return pokeApi.getPokemonList(offset, limit).flatMap { namedApiResource ->
-            return@flatMap Observable.fromIterable(namedApiResource.results).flatMap {
-                pokeApi.getPokemon(urlToId(it.url))
+            val resource = namedApiResource.results
+            return@flatMap Observable.fromIterable(resource).flatMap { namedResource ->
+                getPokemonDetails(namedResource.url).map { return@map Pokemon(it.id, it.name, url = namedResource.url) }
             }
                 .subscribeOn(Schedulers.io())
                 .observeOn(Schedulers.computation())
                 .toSortedList { pokemonFirst, pokemonSecond -> pokemonFirst.id - pokemonSecond.id }
                 .toObservable()
         }
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
+    }
+
+
+    fun getPokemonDetails(
+        pokemonUrl: String
+    ): Observable<Pokemon> {
+        return pokeApi.getPokemon(urlToId(pokemonUrl))
     }
 }

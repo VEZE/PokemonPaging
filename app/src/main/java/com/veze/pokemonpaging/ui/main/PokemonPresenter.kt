@@ -1,5 +1,6 @@
 package com.veze.pokemonpaging.ui.main
 
+import com.veze.pokemonpaging.data.model.PokemonItemStatus
 import com.veze.pokemonpaging.util.PaginationException
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Observable
@@ -49,7 +50,16 @@ class PokemonPresenter(private val interactor: PokemonInteractor) {
                             .startWith(Observable.just(PokemonAction.Paging.Loading))
                             .onErrorReturn { PokemonAction.Paging.Failure(it) }
                     }
+                    is PokemonIntent.LoadDetails -> {
+                        interactor.getPokemonDetails(intent.url)
+                            .map<PokemonAction> {
+                                PokemonAction.Details.Success(it)
+                            }
+                            .startWith(Observable.just(PokemonAction.Details.Loading(intent.id)))
+                            .onErrorReturn { PokemonAction.Details.Failure(intent.id, it) }
+                    }
                 }
+
             }
             .scan(PokemonViewState(), reducer::apply)
             .observeOn(AndroidSchedulers.mainThread())
@@ -93,6 +103,27 @@ class PokemonPresenter(private val interactor: PokemonInteractor) {
                     pagingProgress = false,
                     exception = null
                 )
+                is PokemonAction.Details.Failure -> {
+                    val item = previousViewState.pokemonList.toMutableList()
+                    item[action.id] = item[action.id].copy(status = PokemonItemStatus.Error)
+
+                    return previousViewState.copy(pokemonList = item)
+                }
+                is PokemonAction.Details.Success -> {
+                    val item = previousViewState.pokemonList.toMutableList()
+
+                    val searchItem = item.findLast { it.id == action.result.id }
+
+                    item[item.indexOf(searchItem)] = action.result.copy(status = PokemonItemStatus.Updated)
+
+                    return previousViewState.copy(pokemonList = item)
+                }
+                is PokemonAction.Details.Loading -> {
+                    val item = previousViewState.pokemonList.toMutableList()
+                    item[action.id] = item[action.id].copy(status = PokemonItemStatus.InProgress)
+
+                    return previousViewState.copy(pokemonList = item)
+                }
             }
         }
 

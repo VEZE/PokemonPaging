@@ -7,6 +7,7 @@ interface PokemonView : MviView<PokemonIntent, PokemonViewState>
 
 sealed class PokemonIntent : MviIntent {
     data class LoadMore(val offset: Int) : PokemonIntent()
+    data class LoadDetails(val url: String,val id: Int) : PokemonIntent()
     object Refresh : PokemonIntent()
     object Initial : PokemonIntent()
 }
