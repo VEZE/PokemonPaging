@@ -40,7 +40,10 @@ class EndlessScrollListener(private val pagingListener: PagingListener) :
 
         val containerHeight = recyclerView.measuredHeight
         recyclerView.addRecyclerListener { listener ->
-            itemHeight = listener.itemView.height
+            if (listener.itemView.height > 0) {
+                itemHeight = listener.itemView.height
+
+            }
         }
 
         if (dy == 0 && itemsCount <= containerHeight / itemHeight + VISIBLE_THRESHOLD) {
