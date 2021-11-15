@@ -23,8 +23,8 @@ sealed class PokemonAction : MviAction {
 
     sealed class Details : PokemonAction() {
         data class Success(val result: Pokemon) : Details()
-        data class Failure(val id: Int, val error: Throwable) : Details()
-        data class Loading(val id: Int) : Paging()
+        data class Failure(val position: Int, val error: Throwable) : Details()
+        data class Loading(val position: Int) : Paging()
     }
 
 }

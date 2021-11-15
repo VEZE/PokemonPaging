@@ -105,7 +105,7 @@ class PokemonPresenter(private val interactor: PokemonInteractor) {
                 )
                 is PokemonAction.Details.Failure -> {
                     val item = previousViewState.pokemonList.toMutableList()
-                    item[action.id] = item[action.id].copy(status = PokemonItemStatus.Error)
+                    item[action.position] = item[action.position].copy(status = PokemonItemStatus.Error)
 
                     return previousViewState.copy(pokemonList = item)
                 }
@@ -120,7 +120,7 @@ class PokemonPresenter(private val interactor: PokemonInteractor) {
                 }
                 is PokemonAction.Details.Loading -> {
                     val item = previousViewState.pokemonList.toMutableList()
-                    item[action.id] = item[action.id].copy(status = PokemonItemStatus.InProgress)
+                    item[action.position] = item[action.position].copy(status = PokemonItemStatus.InProgress)
 
                     return previousViewState.copy(pokemonList = item)
                 }
