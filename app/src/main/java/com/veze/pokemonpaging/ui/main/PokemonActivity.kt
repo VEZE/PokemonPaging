@@ -2,11 +2,13 @@ package com.veze.pokemonpaging.ui.main
 
 import android.os.Bundle
 import android.util.Log
+import android.widget.AbsListView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.ConcatAdapter
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.RecyclerView.SCROLL_STATE_IDLE
 import com.veze.pokemonpaging.R
 import com.veze.pokemonpaging.data.model.Pokemon
 import com.veze.pokemonpaging.databinding.ActivityPokemonsBinding
@@ -79,10 +81,39 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
 
 
     private fun setUpRecycler() = with(binding.contentScrolling.pokemonRecycler) {
-        layoutManager = LinearLayoutManager(context, RecyclerView.VERTICAL, false)
+
+        val lm = LinearLayoutManager(context, RecyclerView.VERTICAL, false)
+        layoutManager = lm
         adapter = concatAdapter
 
         addOnScrollListener(EndlessScrollListener(PokemonPagingListener(pagingPublisher)))
+
+        addOnScrollListener(object : RecyclerView.OnScrollListener() {
+
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                super.onScrollStateChanged(recyclerView, newState)
+
+                if(newState == SCROLL_STATE_IDLE) {
+                    val firstId = lm.findFirstCompletelyVisibleItemPosition()
+                    val lastIdId = lm.findLastVisibleItemPosition() - 1
+
+                    //val value = pokemonAdapter.currentList.get(id)
+
+                    detailsPublisher.onNext(
+                        PokemonIntent.LoadDetails(
+                            (firstId .. lastIdId).map {
+                                it to pokemonAdapter.currentList.get(it).url!!
+                            }.toMap()
+                        )
+                    )
+
+                }
+
+            }
+        }
+
+        )
+
     }
 
     private fun setUpSwipeToRefresh() {

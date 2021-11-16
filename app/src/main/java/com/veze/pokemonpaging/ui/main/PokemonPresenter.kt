@@ -6,6 +6,7 @@ import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.functions.BiFunction
+import io.reactivex.rxjava3.kotlin.Observables
 import io.reactivex.rxjava3.kotlin.plusAssign
 import io.reactivex.rxjava3.kotlin.subscribeBy
 import io.reactivex.rxjava3.subjects.BehaviorSubject
@@ -51,12 +52,17 @@ class PokemonPresenter(private val interactor: PokemonInteractor) {
                             .onErrorReturn { PokemonAction.Paging.Failure(it) }
                     }
                     is PokemonIntent.LoadDetails -> {
-                        interactor.getPokemonDetails(intent.url)
-                            .switchMap<PokemonAction> {
-                                Observable.just(PokemonAction.Details.Success(it))
-                            }
-                            .startWith(Observable.just(PokemonAction.Details.Loading(intent.id)))
-                            .onErrorReturn { PokemonAction.Details.Failure(intent.id, it) }
+
+                        Observable.concat( intent.data.entries.map {
+                            Observable.just(it)
+                                .flatMap { map ->
+                                    interactor.getPokemonDetails(map.value)
+                                        .map<PokemonAction> { PokemonAction.Details.Success(it) }
+                                        .startWith(Observable.just(PokemonAction.Details.Loading(map.key)))
+                                        .onErrorReturn { PokemonAction.Details.Failure(map.key, it) }
+                                }
+                        })
+
                     }
                 }
 

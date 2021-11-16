@@ -61,15 +61,15 @@ class PokemonAdapter(
                 pokemon.status == PokemonItemStatus.Empty || pokemon.status == PokemonItemStatus.Error
 
 
-            when (pokemon.status) {
-                PokemonItemStatus.Empty -> detailsPublisher.onNext(PokemonIntent.LoadDetails(pokemon.url
-                    ?: "", position))
-            }
+//            when (pokemon.status) {
+//                PokemonItemStatus.Empty -> detailsPublisher.onNext(PokemonIntent.LoadDetails(pokemon.url
+//                    ?: "", position))
+//            }
 
-            retry.setOnClickListener {
-                if (pokemon.url != null)
-                    updateRequest(pokemon.url, position)
-            }
+//            retry.setOnClickListener {
+//                if (pokemon.url != null)
+//                    updateRequest(pokemon.url, position)
+//            }
 
             val options: RequestOptions = RequestOptions()
                 .centerCrop()
@@ -83,9 +83,9 @@ class PokemonAdapter(
 
         }
 
-        fun updateRequest(pokemonUrl: String, position: Int, afterError: Boolean = false) {
-            detailsPublisher.onNext(PokemonIntent.LoadDetails(pokemonUrl, position))
-        }
+//        fun updateRequest(pokemonUrl: String, position: Int, afterError: Boolean = false) {
+//            detailsPublisher.onNext(PokemonIntent.LoadDetails(pokemonUrl, position))
+//        }
     }
 }
 
