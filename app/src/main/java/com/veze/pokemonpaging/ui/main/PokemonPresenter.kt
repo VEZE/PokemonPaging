@@ -52,8 +52,8 @@ class PokemonPresenter(private val interactor: PokemonInteractor) {
                     }
                     is PokemonIntent.LoadDetails -> {
                         interactor.getPokemonDetails(intent.url)
-                            .map<PokemonAction> {
-                                PokemonAction.Details.Success(it)
+                            .switchMap<PokemonAction> {
+                                Observable.just(PokemonAction.Details.Success(it))
                             }
                             .startWith(Observable.just(PokemonAction.Details.Loading(intent.id)))
                             .onErrorReturn { PokemonAction.Details.Failure(intent.id, it) }
@@ -105,7 +105,8 @@ class PokemonPresenter(private val interactor: PokemonInteractor) {
                 )
                 is PokemonAction.Details.Failure -> {
                     val item = previousViewState.pokemonList.toMutableList()
-                    item[action.position] = item[action.position].copy(status = PokemonItemStatus.Error)
+                    item[action.position] =
+                        item[action.position].copy(status = PokemonItemStatus.Error)
 
                     return previousViewState.copy(pokemonList = item)
                 }
@@ -114,13 +115,21 @@ class PokemonPresenter(private val interactor: PokemonInteractor) {
 
                     val searchItem = item.findLast { it.id == action.result.id }
 
-                    item[item.indexOf(searchItem)] = action.result.copy(status = PokemonItemStatus.Updated)
+                    item[item.indexOf(searchItem)] =
+                        action.result.copy(status = PokemonItemStatus.Updated)
 
                     return previousViewState.copy(pokemonList = item)
                 }
                 is PokemonAction.Details.Loading -> {
                     val item = previousViewState.pokemonList.toMutableList()
-                    item[action.position] = item[action.position].copy(status = PokemonItemStatus.InProgress)
+                    item[action.position] =
+                        item[action.position].copy(status = PokemonItemStatus.InProgress)
+
+                    if (item[action.position].status == PokemonItemStatus.InProgress
+                    ) {
+                        item[action.position] =
+                            item[action.position].copy(status = PokemonItemStatus.Error)
+                    }
 
                     return previousViewState.copy(pokemonList = item)
                 }

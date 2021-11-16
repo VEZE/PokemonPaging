@@ -22,7 +22,7 @@ import io.reactivex.rxjava3.subjects.PublishSubject
 
 class PokemonAdapter(
     private val detailsPublisher: PublishSubject<PokemonIntent.LoadDetails>,
-    private val onClick: (Pokemon) -> Unit
+    private val onClick: (Pokemon) -> Unit,
 ) :
     ListAdapter<Pokemon, PokemonAdapter.PokemonViewHolder>(PokemonDiffCallback) {
 
@@ -51,15 +51,19 @@ class PokemonAdapter(
         }
 
         fun bind(pokemon: Pokemon, position: Int) {
+            println("state = ${pokemon.status}")
+
             currentPokemon = pokemon
 
             pokemonNameView.text = pokemon.name
 
-            retry.isVisible = pokemon.status == PokemonItemStatus.InProgress
+            retry.isVisible =
+                pokemon.status == PokemonItemStatus.Empty || pokemon.status == PokemonItemStatus.Error
 
 
             when (pokemon.status) {
-                PokemonItemStatus.Empty -> detailsPublisher.onNext(PokemonIntent.LoadDetails(pokemon.url ?: "", position))
+                PokemonItemStatus.Empty -> detailsPublisher.onNext(PokemonIntent.LoadDetails(pokemon.url
+                    ?: "", position))
             }
 
             retry.setOnClickListener {
