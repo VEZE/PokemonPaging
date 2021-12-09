@@ -41,7 +41,6 @@ class PokemonPresenter(private val interactor: PokemonInteractor) {
                             .map<PokemonAction> { PokemonAction.Initial.Success(it) }
                             .startWith(Observable.just(PokemonAction.Initial.Loading))
                             .onErrorReturn { error -> PokemonAction.Initial.Failure(error = error) }
-
                     }
                     is PokemonIntent.LoadMore -> {
                         interactor.getPokemons(intent.offset)
@@ -50,13 +49,20 @@ class PokemonPresenter(private val interactor: PokemonInteractor) {
                             .startWith(Observable.just(PokemonAction.Paging.Loading))
                             .onErrorReturn { PokemonAction.Paging.Failure(it) }
                     }
+                    //TO single,
                     is PokemonIntent.LoadDetails -> {
-                        interactor.getPokemonDetails(intent.url)
-                            .switchMap<PokemonAction> {
-                                Observable.just(PokemonAction.Details.Success(it))
+                        Observable.fromIterable(intent.itemsDetails.entries)
+                            .flatMap { mapItem ->
+                                interactor.getPokemonDetails(mapItem.value)
+                                    .switchMap<PokemonAction> {
+                                        Observable.just(PokemonAction.Details.Success(it))
+                                    }
+                                    .startWith(Observable.just(PokemonAction.Details.Loading(mapItem.key)))
+                                    .onErrorReturn {
+                                        PokemonAction.Details.Failure(mapItem.key, it)
+                                    }
                             }
-                            .startWith(Observable.just(PokemonAction.Details.Loading(intent.id)))
-                            .onErrorReturn { PokemonAction.Details.Failure(intent.id, it) }
+
                     }
                 }
 
@@ -124,12 +130,6 @@ class PokemonPresenter(private val interactor: PokemonInteractor) {
                     val item = previousViewState.pokemonList.toMutableList()
                     item[action.position] =
                         item[action.position].copy(status = PokemonItemStatus.InProgress)
-
-                    if (item[action.position].status == PokemonItemStatus.InProgress
-                    ) {
-                        item[action.position] =
-                            item[action.position].copy(status = PokemonItemStatus.Error)
-                    }
 
                     return previousViewState.copy(pokemonList = item)
                 }

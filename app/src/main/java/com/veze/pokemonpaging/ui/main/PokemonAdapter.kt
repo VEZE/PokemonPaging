@@ -32,7 +32,7 @@ class PokemonAdapter(
     }
 
     override fun onBindViewHolder(holder: PokemonViewHolder, position: Int) {
-        holder.bind(getItem(position), position)
+        holder.bind(position)
     }
 
     inner class PokemonViewHolder(itemView: View, val onClick: (Pokemon) -> Unit) :
@@ -40,35 +40,27 @@ class PokemonAdapter(
         private val pokemonImageView: ImageView = itemView.findViewById(R.id.pokemon_image)
         private val pokemonNameView: TextView = itemView.findViewById(R.id.pokemon_name)
         private val retry: Button = itemView.findViewById(R.id.retryItem)
-        private var currentPokemon: Pokemon? = null
+        private lateinit var pokemon: Pokemon
 
         init {
             itemView.setOnClickListener {
-                currentPokemon?.let {
-                    onClick(it)
-                }
+                onClick(pokemon)
             }
         }
 
-        fun bind(pokemon: Pokemon, position: Int) {
-            println("state = ${pokemon.status}")
-
-            currentPokemon = pokemon
+        fun bind(position: Int) {
+            pokemon = getItem(position)
 
             pokemonNameView.text = pokemon.name
 
+            retry.isVisible = false
             retry.isVisible =
-                pokemon.status == PokemonItemStatus.Empty || pokemon.status == PokemonItemStatus.Error
-
-
-            when (pokemon.status) {
-                PokemonItemStatus.Empty -> detailsPublisher.onNext(PokemonIntent.LoadDetails(pokemon.url
-                    ?: "", position))
-            }
+                pokemon.status == PokemonItemStatus.Error
 
             retry.setOnClickListener {
-                if (pokemon.url != null)
-                    updateRequest(pokemon.url, position)
+                pokemon.url?.let {
+                    updateRequest(it, position)
+                }
             }
 
             val options: RequestOptions = RequestOptions()
@@ -78,13 +70,16 @@ class PokemonAdapter(
                 .priority(Priority.HIGH)
                 .dontTransform()
 
-            Glide.with(itemView.context).load(pokemon.sprites?.frontDefault).apply(options)
-                .into(pokemonImageView)
+            pokemonImageView.setImageResource(R.drawable.item_loading)
+
+            if (pokemon.sprites != null)
+                Glide.with(itemView.context).load(pokemon.sprites!!.frontDefault).apply(options)
+                    .into(pokemonImageView)
 
         }
 
-        fun updateRequest(pokemonUrl: String, position: Int, afterError: Boolean = false) {
-            detailsPublisher.onNext(PokemonIntent.LoadDetails(pokemonUrl, position))
+        fun updateRequest(pokemonUrl: String, position: Int) {
+            detailsPublisher.onNext(PokemonIntent.LoadDetails(mapOf(position to pokemonUrl)))
         }
     }
 }

@@ -7,8 +7,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.ConcatAdapter
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.veze.pokemonpaging.R
+import androidx.recyclerview.widget.RecyclerView.SCROLL_STATE_IDLE
 import com.veze.pokemonpaging.data.model.Pokemon
+import com.veze.pokemonpaging.data.model.PokemonItemStatus
 import com.veze.pokemonpaging.databinding.ActivityPokemonsBinding
 import com.veze.pokemonpaging.util.EndlessScrollListener
 import com.veze.pokemonpaging.util.PaginationException
@@ -17,6 +18,7 @@ import com.veze.pokemonpaging.util.showToast
 import io.reactivex.rxjava3.core.Observable
 import io.reactivex.rxjava3.subjects.BehaviorSubject
 import io.reactivex.rxjava3.subjects.PublishSubject
+import java.util.concurrent.TimeUnit
 
 
 class PokemonActivity : AppCompatActivity(), PokemonView {
@@ -62,7 +64,7 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
 
         setUpRecycler()
 
-        setSupportActionBar(findViewById(R.id.toolbar))
+        // setSupportActionBar(findViewById(R.id.toolbar))
     }
 
     override fun render(state: PokemonViewState) = with(state) {
@@ -83,6 +85,50 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
         adapter = concatAdapter
 
         addOnScrollListener(EndlessScrollListener(PokemonPagingListener(pagingPublisher)))
+
+
+        addOnScrollListener(object : RecyclerView.OnScrollListener() {
+
+            private val subject = PublishSubject.create<Map<Int, String>>()
+
+            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
+                super.onScrollStateChanged(recyclerView, newState)
+
+                val linearLayout = recyclerView.layoutManager as LinearLayoutManager
+
+                val firstVisibleItem = linearLayout.findFirstCompletelyVisibleItemPosition()
+
+                var lastVisibleItem = linearLayout.findLastCompletelyVisibleItemPosition()
+
+                if (lastVisibleItem == pokemonAdapter.itemCount) {
+                    lastVisibleItem -= 1
+                }
+
+                if (newState == SCROLL_STATE_IDLE) {
+
+                    val eventMap = (firstVisibleItem..lastVisibleItem).map {
+                        it to pokemonAdapter.currentList[it]
+                    }.toMap()
+                        .filterValues { it.url != null && it.status != PokemonItemStatus.Updated }
+                        .map { it.key to it.value.url!! }
+                        .toMap()
+
+                    if (eventMap.isNotEmpty()) {
+
+                        subject.startWith(Observable.just(eventMap))
+                            .debounce(1500, TimeUnit.MILLISECONDS)
+                            .distinctUntilChanged()
+                            .subscribe {
+                                detailsPublisher.onNext(PokemonIntent.LoadDetails(
+                                    it
+                                ))
+                            }
+                    }
+
+                }
+            }
+        })
+
     }
 
     private fun setUpSwipeToRefresh() {
@@ -119,7 +165,8 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
     private fun loadMoreIntent(): Observable<PokemonIntent.LoadMore> =
         pagingPublisher
 
-    private fun loadDetails(): Observable<PokemonIntent.LoadDetails> = detailsPublisher
+    private fun loadDetails(): Observable<PokemonIntent.LoadDetails> =
+        detailsPublisher
 
     override fun getIntentsStream(): Observable<PokemonIntent> {
         return Observable.merge(
@@ -130,7 +177,8 @@ class PokemonActivity : AppCompatActivity(), PokemonView {
         )
     }
 
-    private fun showException(exception: Throwable) = showToast("${exception.message}")
+    private fun showException(exception: Throwable) =
+        showToast("${exception.message}")
 
     override fun onStart() {
         super.onStart()
